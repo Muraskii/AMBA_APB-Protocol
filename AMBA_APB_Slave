@@ -1,0 +1,65 @@
+module AMBA_APB(
+  input P_clk, P_rst,
+  input [31:0]P_addr,
+  input P_selx,P_write,P_enable,
+  input [31:0]P_wdata,
+  output reg P_ready,P_slverr,
+  output reg [31:0]P_rdata
+);
+  //Declaring memory
+  reg [31:0]mem[0:31];
+  //declaring states
+  parameter IDLE=2'b00, SETUP=2'b01,ACCESS=2'b10;
+  reg [1:0] present_state,next_state;
+  always@(posedge P_clk or negedge P_rst)begin
+    next_state=present_state;
+    if(P_rst)
+      next_state<=IDLE;
+    else
+      present_state<=next_state;
+  end
+  always@(*)begin
+    next_state=present_state;
+    P_ready=0;
+    P_slverr=0;
+  end
+   always @(*) begin
+    present_state=next_state;
+    P_ready = 0;
+    P_slverr = 0;
+    
+    case (present_state)
+      IDLE: begin  
+        if (P_selx && !P_enable)
+          next_state = SETUP;
+      end
+      
+      SETUP: begin
+        if (P_selx && P_enable)
+          next_state = ACCESS;
+        else 
+          next_state = IDLE;
+      end
+
+      ACCESS: begin
+        if (!P_selx || !P_enable)
+          next_state = IDLE;
+        else begin
+          P_ready = 1;
+          
+          
+          if (P_addr[4:0] < 32) begin
+            if (P_write)
+              mem[P_addr[4:0]] <= P_wdata;
+            else
+              P_rdata = mem[P_addr[4:0]];
+          end 
+          else begin
+            P_slverr = 1;
+          end
+        end
+      end
+    endcase  
+end
+endmodule
+
