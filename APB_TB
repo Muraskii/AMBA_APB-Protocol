@@ -1,0 +1,74 @@
+`timescale 1ns / 1ps
+
+module APB_Testbench;
+  
+  reg P_clk, P_rst;
+  reg [31:0] P_addr;
+  reg P_selx, P_write, P_enable;
+  reg [31:0] P_wdata;
+  wire P_ready, P_slverr;
+  wire [31:0] P_rdata;
+  
+  // Instantiate APB Slave
+  AMBA_APB uut (
+    .P_clk(P_clk),
+    .P_rst(P_rst),
+    .P_addr(P_addr),
+    .P_selx(P_selx),
+    .P_write(P_write),
+    .P_enable(P_enable),
+    .P_wdata(P_wdata),
+    .P_ready(P_ready),
+    .P_slverr(P_slverr),
+    .P_rdata(P_rdata)
+  );
+
+  // Clock Generation (50 MHz)
+  always #10 P_clk = ~P_clk;
+
+  // Stimulus
+  initial begin
+    // Initialize
+    P_clk = 0;
+    P_rst = 1;
+    P_addr = 0;
+    P_selx = 0;
+    P_write = 0;
+    P_enable = 0;
+    P_wdata = 0;
+
+    #20 P_rst = 0;  // Deassert reset
+    
+    // WRITE Operation
+    #20;
+    P_selx = 1;
+    P_write = 1;
+    P_addr = 5;
+    P_wdata = 32'hA5A5A5A5;
+    P_enable = 1;
+
+    #20;  // Wait for response
+    P_selx = 0;
+    P_enable = 0;
+
+    // READ Operation
+    #40;
+    P_selx = 1;
+    P_write = 0;
+    P_addr = 5;
+    P_enable = 1;
+
+    #20;  // Wait for response
+    P_selx = 0;
+    P_enable = 0;
+
+    // Display Read Data
+    #20;
+    $display("Read Data: %h", P_rdata);
+    
+    // End Simulation
+    #50;
+    $stop;
+  end
+  
+endmodule
