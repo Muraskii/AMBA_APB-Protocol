@@ -1,0 +1,46 @@
+module APB_Master(
+	input P_clk,P_rst,
+	output reg P_selx,P_enable,P_write,
+  output reg[31:0] P_addr,P_wdata,
+	input P_ready,P_slverr,
+  input [31:0] P_rdata
+);
+  //APB States
+  parameter IDLE= 2'b00 ,SETUP=2'b01, ACCESS=2'b10;
+  reg [1:0] state,next_state;
+  
+  always @(posedge P_clk or negedge P_rst)begin
+    if(!P_rst)
+      state<=IDLE;
+    else
+      state<=next_state;
+  end
+  always@(*)begin
+    next_state=state;
+    P_selx=0;
+    P_enable=0;
+    P_write=0;
+    P_addr=0;
+    
+    case (state)
+      IDLE:begin
+        next_state=SETUP;
+      end
+      
+      SETUP:begin
+        P_selx=1;
+        P_enable=1;
+        P_write=1;
+        P_addr=32'hDEADBEEF;
+        next_state=ACCESS;
+      end
+      
+      ACCESS:begin
+        P_enable=1;
+        if(P_ready)begin
+           next_state=IDLE;
+        end
+      end
+    endcase
+  end
+endmodule
